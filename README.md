@@ -59,7 +59,7 @@ APK создаётся в `app/build/outputs/apk/debug/app-debug.apk`. CI так
 
 ## Установка на Samsung Galaxy M31s
 
-1. Скачайте APK из [GitHub Releases](https://github.com/Sergo379/psiahramenco3_4/releases).
+1. Скачайте APK из [релиза GameDex v1.0.0](https://github.com/Sergo379/psiahramenco3_4/releases/tag/v1.0.0).
 2. Разрешите установку неизвестных приложений для браузера/файлового менеджера.
 3. Откройте APK, подтвердите установку и запустите GameDex.
 4. Введите личный RAWG API-ключ на первом экране.

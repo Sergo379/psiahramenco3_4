@@ -18,7 +18,7 @@ GameDex — каталог видеоигр, личная библиотека �
 
 ## 5. Работа ИИ
 
-ИИ подготовил архитектуру, UI, сетевой и локальный слои, аналитические формулы, тесты, CI и документацию. Проверки выполнялись командами `gradlew.bat testDebugUnitTest`, `assembleDebug`, Git-командами и GitHub Actions. Реальные ошибки сборки и внесённые исправления фиксируются ниже после завершения CI.
+ИИ подготовил архитектуру, UI, сетевой и локальный слои, аналитические формулы, тесты, CI и документацию. Проверки выполнялись командами `testDebugUnitTest` и `assembleDebug` в GitHub Actions, а также Git-командами и GitHub REST API. Первая чистая CI-сборка завершилась успешно; ошибок компиляции или тестов, требовавших отдельного исправления после запуска CI, не возникло.
 
 ## 6. Сравнение разработки на другом языке
 
@@ -26,12 +26,12 @@ Kotlin даёт null-safety, data/sealed classes, корутины и Flow, чт
 
 ## 7. Тестирование
 
-- Unit-тесты: JSON/DTO, обработка API-ошибок, статистика, выбор дат, валидация, библиотека и cache fallback.
+- Выполнено 35 unit-тестов: JSON/DTO, обработка API-ошибок, статистика, выбор дат, валидация, библиотека и cache fallback.
 - Команда: `gradlew.bat testDebugUnitTest`.
 - Инструментальные тесты на физическом устройстве не заявляются как выполненные.
 - Ручная проверка офлайн-режима на Samsung Galaxy M31s остаётся действием студента.
 
-Точное число и итог будут обновлены по фактическому отчёту Gradle перед релизом.
+Результат: 35 из 35 тестов прошли, `assembleDebug` успешно создал подписанный debug APK. [Успешный запуск Android CI №1](https://github.com/Sergo379/psiahramenco3_4/actions/runs/38371223507).
 
 ## 8. Git и CI/CD
 
@@ -40,7 +40,7 @@ Kotlin даёт null-safety, data/sealed classes, корутины и Flow, чт
 - [PR 3 — игровой каталог](https://github.com/Sergo379/psiahramenco3_4/pull/3)
 - [PR 4 — локальная библиотека](https://github.com/Sergo379/psiahramenco3_4/pull/4)
 - [PR 5 — аналитика](https://github.com/Sergo379/psiahramenco3_4/pull/5)
-- Этап 6 — качество и релиз: текущий PR.
+- [PR 6 — качество и релиз](https://github.com/Sergo379/psiahramenco3_4/pull/6)
 
 Workflow `android-ci.yml` запускает unit-тесты и собирает debug APK на push/PR/manual. `release.yml` повторяет проверки и публикует APK с SHA-256 по тегу.
 
