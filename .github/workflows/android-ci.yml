@@ -1,0 +1,31 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests and debug APK
+        run: ./gradlew testDebugUnitTest assembleDebug --stacktrace
+      - name: Prepare artifact
+        run: cp app/build/outputs/apk/debug/app-debug.apk GameDex-Android12-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GameDex-Android12-debug
+          path: GameDex-Android12-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
