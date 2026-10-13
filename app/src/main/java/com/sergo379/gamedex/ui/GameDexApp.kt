@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -31,12 +32,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sergo379.gamedex.BuildConfig
-import com.sergo379.gamedex.data.GameRepository
-import com.sergo379.gamedex.data.MemoryGameCache
-import com.sergo379.gamedex.data.remote.RawgServiceFactory
+import com.sergo379.gamedex.AppGraph
 import com.sergo379.gamedex.ui.screens.DetailScreen
 import com.sergo379.gamedex.ui.screens.HomeScreen
+import com.sergo379.gamedex.ui.screens.LibraryScreen
 import com.sergo379.gamedex.ui.screens.SearchScreen
+import com.sergo379.gamedex.ui.screens.SettingsScreen
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private val destinations = listOf(
@@ -47,15 +48,19 @@ private val destinations = listOf(
 )
 
 @Composable
-fun GameDexApp() {
+fun GameDexApp(graph: AppGraph) {
     val navController = rememberNavController()
-    val repository = remember {
-        GameRepository(RawgServiceFactory.create(), { BuildConfig.RAWG_API_KEY }, MemoryGameCache())
+    val repository = graph.games
+    val factory = remember(repository) { CatalogViewModelFactory(repository, graph.library) }
+    val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(graph.settings, graph.api, BuildConfig.RAWG_API_KEY))
+    val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
+    if (!settingsState.valid) {
+        SettingsScreen(settingsViewModel, firstRun = true, onContinue = {})
+        return
     }
-    val factory = remember(repository) { CatalogViewModelFactory(repository) }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    val showBottomBar = route?.startsWith("detail") != true
+    val showBottomBar = route?.startsWith("detail") != true && route != "settings"
     Scaffold(
         bottomBar = {
             if (showBottomBar) NavigationBar {
@@ -78,17 +83,18 @@ fun GameDexApp() {
     ) { padding ->
         NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding)) {
             composable("home") {
-                HomeScreen(viewModel(factory = factory), { navController.navigate("detail/$it") }, { navController.navigate("search") })
+                HomeScreen(viewModel(factory = factory), { navController.navigate("detail/$it") }, { navController.navigate("search") }, { navController.navigate("settings") })
             }
             composable("search") {
                 SearchScreen(viewModel(factory = factory), { navController.navigate("detail/$it") })
             }
             composable("analytics") { PlaceholderScreen("Аналитика", "Релизы за 7 и 30 дней") }
-            composable("library") { PlaceholderScreen("Библиотека", "Ваш игровой путь") }
+            composable("library") { LibraryScreen(viewModel(factory = factory), { navController.navigate("detail/$it") }) }
+            composable("settings") { SettingsScreen(settingsViewModel, firstRun = false, onContinue = navController::popBackStack) }
             composable("detail/{id}", arguments = listOf(navArgument("id") { type = NavType.IntType })) { backStack ->
                 val id = requireNotNull(backStack.arguments).getInt("id")
                 DetailScreen(
-                    viewModel(key = "detail-$id", factory = CatalogViewModelFactory(repository, id)),
+                    viewModel(key = "detail-$id", factory = CatalogViewModelFactory(repository, graph.library, id)),
                     navController::popBackStack,
                 )
             }

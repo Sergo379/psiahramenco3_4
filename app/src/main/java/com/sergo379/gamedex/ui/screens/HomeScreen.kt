@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -40,7 +41,7 @@ import com.sergo379.gamedex.ui.components.GameCard
 import com.sergo379.gamedex.ui.components.SourceCaption
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel, onGameClick: (Int) -> Unit, onSearchClick: () -> Unit) {
+fun HomeScreen(viewModel: HomeViewModel, onGameClick: (Int) -> Unit, onSearchClick: () -> Unit, onSettingsClick: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     when (val current = state) {
         UiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -56,6 +57,7 @@ fun HomeScreen(viewModel: HomeViewModel, onGameClick: (Int) -> Unit, onSearchCli
                             Text("Discover. Track. Play.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         IconButton(onClick = viewModel::refresh) { Icon(Icons.Rounded.Refresh, "Обновить") }
+                        IconButton(onClick = onSettingsClick) { Icon(Icons.Rounded.Settings, "Настройки") }
                     }
                 }
                 if (current.fromCache) item { OfflineBanner() }
