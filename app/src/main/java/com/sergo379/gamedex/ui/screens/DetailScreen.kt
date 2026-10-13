@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -40,10 +45,12 @@ import com.sergo379.gamedex.domain.UiState
 import com.sergo379.gamedex.domain.PlayStatus
 import com.sergo379.gamedex.ui.DetailViewModel
 import com.sergo379.gamedex.ui.components.SourceCaption
+import com.sergo379.gamedex.ui.components.GameCard
+import com.sergo379.gamedex.domain.Game
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit) {
+fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit, onGameClick: (Int) -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     when (val current = state) {
@@ -81,6 +88,24 @@ fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit) {
                     SourceCaption(Modifier.padding(bottom = 24.dp))
                 }
             }
+            if (detail.relatedLoading) item {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    Text("Загружаем связанные игры…", modifier = Modifier.padding(start = 12.dp))
+                }
+            }
+            if (detail.series.isNotEmpty()) item { RelatedSection("Игры серии", detail.series, onGameClick) }
+            if (detail.additions.isNotEmpty()) item { RelatedSection("Дополнения и издания", detail.additions, onGameClick) }
+        }
+    }
+}
+
+@Composable
+private fun RelatedSection(title: String, games: List<Game>, onGameClick: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
+        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(games, key = { it.id }) { game -> GameCard(game, { onGameClick(game.id) }) }
         }
     }
 }
