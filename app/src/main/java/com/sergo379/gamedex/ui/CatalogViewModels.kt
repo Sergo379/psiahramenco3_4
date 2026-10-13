@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sergo379.gamedex.data.ApiErrorMapper
 import com.sergo379.gamedex.data.GameRepository
+import com.sergo379.gamedex.data.GameSearchDataSource
 import com.sergo379.gamedex.data.LibraryRepository
 import com.sergo379.gamedex.data.local.LibraryGame
 import com.sergo379.gamedex.data.local.SettingsStore
@@ -13,8 +14,11 @@ import com.sergo379.gamedex.domain.Game
 import com.sergo379.gamedex.domain.GameFilters
 import com.sergo379.gamedex.domain.InputValidator
 import com.sergo379.gamedex.domain.PlayStatus
+import com.sergo379.gamedex.domain.RelatedGames
+import com.sergo379.gamedex.domain.SearchRelevance
 import com.sergo379.gamedex.domain.UiState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,70 +49,99 @@ data class SearchScreenState(
     val loadingMore: Boolean = false,
     val fromCache: Boolean = false,
     val hasNext: Boolean = false,
-    val page: Int = 1,
+    val page: Int = 0,
     val filters: GameFilters = GameFilters(),
     val error: String? = null,
+    val hasSearched: Boolean = false,
 )
 
-class SearchViewModel(private val repository: GameRepository) : ViewModel() {
+class SearchViewModel(private val repository: GameSearchDataSource) : ViewModel() {
     private val _state = MutableStateFlow(SearchScreenState())
     val state: StateFlow<SearchScreenState> = _state.asStateFlow()
     private var searchJob: Job? = null
+    private var requestVersion: Long = 0
 
     fun onQueryChanged(value: String) {
-        _state.value = _state.value.copy(query = value, error = InputValidator.validateQuery(value))
-        searchJob?.cancel()
-        if (value.isBlank()) {
-            _state.value = _state.value.copy(games = emptyList(), loading = false, error = null)
-            return
-        }
-        searchJob = viewModelScope.launch { delay(450); performSearch(reset = true) }
+        startFirstPage(value.take(InputValidator.MAX_QUERY_LENGTH), _state.value.filters, debounceMs = 350)
     }
 
     fun updateFilters(filters: GameFilters) {
-        _state.value = _state.value.copy(filters = filters)
-        if (_state.value.query.isNotBlank()) performSearch(reset = true)
+        if (filters == _state.value.filters) return
+        startFirstPage(_state.value.query, filters, debounceMs = 0)
     }
 
     fun clearFilters() = updateFilters(GameFilters())
-    fun retry() = performSearch(reset = true)
-    fun loadMore() { if (_state.value.hasNext && !_state.value.loadingMore) performSearch(reset = false) }
+    fun retry() = startFirstPage(_state.value.query, _state.value.filters, debounceMs = 0)
+    fun submit() = startFirstPage(_state.value.query, _state.value.filters, debounceMs = 0)
 
-    private fun performSearch(reset: Boolean) {
+    fun loadMore() {
         val current = _state.value
-        val validation = InputValidator.validateQuery(current.query)
-        if (validation != null) {
-            _state.value = current.copy(error = validation)
-            return
-        }
-        viewModelScope.launch {
-            val page = if (reset) 1 else current.page + 1
-            _state.value = current.copy(
-                loading = reset,
-                loadingMore = !reset,
-                error = null,
-                games = if (reset) emptyList() else current.games,
-            )
-            _state.value = try {
-                val result = repository.search(current.query, current.filters, page)
-                val old = if (reset) emptyList() else current.games
-                _state.value.copy(
-                    games = (old + result.games).distinctBy(Game::id),
-                    loading = false,
-                    loadingMore = false,
-                    fromCache = result.fromCache,
-                    hasNext = result.hasNext,
-                    page = page,
-                    error = if (result.games.isEmpty() && reset) "Ничего не найдено" else null,
-                )
-            } catch (error: Throwable) {
-                _state.value.copy(loading = false, loadingMore = false, error = ApiErrorMapper.message(error))
-            }
+        if (!current.hasNext || current.loading || current.loadingMore || searchJob?.isActive == true) return
+        val version = requestVersion
+        val page = current.page + 1
+        _state.value = current.copy(loadingMore = true, error = null)
+        searchJob = viewModelScope.launch { execute(version, current.query, current.filters, page, reset = false) }
+    }
+
+    private fun startFirstPage(query: String, filters: GameFilters, debounceMs: Long) {
+        searchJob?.cancel()
+        val version = ++requestVersion
+        val validation = if (query.isBlank()) null else InputValidator.validateQuery(query)
+        _state.value = SearchScreenState(
+            query = query,
+            filters = filters,
+            loading = query.isNotBlank() && validation == null,
+            error = validation,
+        )
+        if (query.isBlank() || validation != null) return
+        searchJob = viewModelScope.launch {
+            if (debounceMs > 0) delay(debounceMs)
+            execute(version, query, filters, page = 1, reset = true)
         }
     }
+
+    private suspend fun execute(version: Long, query: String, filters: GameFilters, page: Int, reset: Boolean) {
+        try {
+            val result = repository.search(query, filters, page)
+            if (!isCurrent(version, query, filters)) return
+            val old = if (reset) emptyList() else _state.value.games
+            val merged = SearchRelevance.rank(query, old + result.games)
+            _state.value = _state.value.copy(
+                games = merged,
+                loading = false,
+                loadingMore = false,
+                fromCache = result.fromCache,
+                hasNext = result.hasNext,
+                page = page,
+                error = if (merged.isEmpty() && reset) "Ничего не найдено" else null,
+                hasSearched = true,
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            if (!isCurrent(version, query, filters)) return
+            _state.value = _state.value.copy(
+                loading = false,
+                loadingMore = false,
+                error = ApiErrorMapper.message(error),
+                hasSearched = true,
+            )
+        }
+    }
+
+    private fun isCurrent(version: Long, query: String, filters: GameFilters): Boolean =
+        version == requestVersion && _state.value.query == query && _state.value.filters == filters
 }
 
-data class DetailData(val game: Game, val fromCache: Boolean, val favorite: Boolean, val status: PlayStatus?)
+data class DetailData(
+    val game: Game,
+    val fromCache: Boolean,
+    val favorite: Boolean,
+    val status: PlayStatus?,
+    val series: List<Game> = emptyList(),
+    val additions: List<Game> = emptyList(),
+    val relatedLoading: Boolean = false,
+)
 
 class DetailViewModel(
     private val id: Int,
@@ -120,11 +153,26 @@ class DetailViewModel(
     init { refresh() }
     fun refresh() = viewModelScope.launch {
         _state.value = UiState.Loading
-        _state.value = try {
+        try {
             val (game, cached) = repository.details(id)
             val local = library.item(id)
-            UiState.Success(DetailData(game, cached, local?.favorite == true, local?.status), cached)
-        } catch (error: Throwable) { UiState.Error(ApiErrorMapper.message(error)) }
+            _state.value = UiState.Success(DetailData(game, cached, local?.favorite == true, local?.status, relatedLoading = !cached), cached)
+            if (!cached) {
+                val related = try {
+                    repository.related(id)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Throwable) {
+                    RelatedGames()
+                }
+                val current = (_state.value as? UiState.Success)?.data ?: return@launch
+                _state.value = UiState.Success(current.copy(series = related.series, additions = related.additions, relatedLoading = false), cached)
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            _state.value = UiState.Error(ApiErrorMapper.message(error))
+        }
     }
     fun toggleFavorite() = viewModelScope.launch {
         val current = (_state.value as? UiState.Success)?.data ?: return@launch

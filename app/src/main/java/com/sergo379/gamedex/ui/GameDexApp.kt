@@ -105,6 +105,7 @@ fun GameDexApp(graph: AppGraph) {
                 DetailScreen(
                     viewModel(key = "detail-$id", factory = CatalogViewModelFactory(repository, graph.library, id)),
                     navController::popBackStack,
+                    onGameClick = { navController.navigate("detail/$it") },
                 )
             }
         }

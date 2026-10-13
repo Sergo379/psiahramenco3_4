@@ -22,7 +22,12 @@ data class GameFilters(
     val genre: String? = null,
     val platform: Int? = null,
     val year: Int? = null,
-    val ordering: String = "-rating",
+    val ordering: String? = null,
+)
+
+data class RelatedGames(
+    val series: List<Game> = emptyList(),
+    val additions: List<Game> = emptyList(),
 )
 
 enum class PlayStatus(val label: String) {

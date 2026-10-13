@@ -44,10 +44,12 @@ class RepositoryCacheTest {
     }
 
     private class FakeApi(private val fail:Boolean):RawgApi {
-        override suspend fun games(key:String,search:String?,genres:String?,platforms:Int?,dates:String?,ordering:String?,page:Int,pageSize:Int):GamePageDto {
+        override suspend fun games(key:String,search:String?,searchPrecise:Boolean?,searchExact:Boolean?,genres:String?,platforms:Int?,dates:String?,ordering:String?,page:Int,pageSize:Int):GamePageDto {
             if(fail) throw IOException("offline"); return GamePageDto(1,null,listOf(GameDto(2,search ?: "New")))
         }
         override suspend fun game(id:Int,key:String):GameDto { if(fail) throw IOException("offline"); return GameDto(id,"New") }
+        override suspend fun additions(gameId:Int,key:String,pageSize:Int)=GamePageDto(0,null,emptyList())
+        override suspend fun gameSeries(gameId:Int,key:String,pageSize:Int)=GamePageDto(0,null,emptyList())
     }
     private class FakeCache(val items:MutableList<Game> = mutableListOf()):GameCache {
         override suspend fun save(games:List<Game>){ games.forEach { g->items.removeAll{it.id==g.id};items+=g } }

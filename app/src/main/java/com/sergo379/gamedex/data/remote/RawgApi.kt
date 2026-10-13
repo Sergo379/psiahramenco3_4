@@ -17,6 +17,8 @@ interface RawgApi {
     suspend fun games(
         @Query("key") key: String,
         @Query("search") search: String? = null,
+        @Query("search_precise") searchPrecise: Boolean? = null,
+        @Query("search_exact") searchExact: Boolean? = null,
         @Query("genres") genres: String? = null,
         @Query("platforms") platforms: Int? = null,
         @Query("dates") dates: String? = null,
@@ -27,6 +29,20 @@ interface RawgApi {
 
     @GET("games/{id}")
     suspend fun game(@Path("id") id: Int, @Query("key") key: String): GameDto
+
+    @GET("games/{game_pk}/additions")
+    suspend fun additions(
+        @Path("game_pk") gameId: Int,
+        @Query("key") key: String,
+        @Query("page_size") pageSize: Int = 12,
+    ): GamePageDto
+
+    @GET("games/{game_pk}/game-series")
+    suspend fun gameSeries(
+        @Path("game_pk") gameId: Int,
+        @Query("key") key: String,
+        @Query("page_size") pageSize: Int = 12,
+    ): GamePageDto
 }
 
 object RawgServiceFactory {
