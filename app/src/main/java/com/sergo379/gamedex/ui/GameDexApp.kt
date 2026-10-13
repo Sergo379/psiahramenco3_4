@@ -34,6 +34,9 @@ import androidx.navigation.navArgument
 import com.sergo379.gamedex.BuildConfig
 import com.sergo379.gamedex.AppGraph
 import com.sergo379.gamedex.ui.screens.DetailScreen
+import com.sergo379.gamedex.ui.screens.AnalyticsHub
+import com.sergo379.gamedex.ui.screens.WeeklyAnalyticsScreen
+import com.sergo379.gamedex.ui.screens.MonthlyAnalyticsScreen
 import com.sergo379.gamedex.ui.screens.HomeScreen
 import com.sergo379.gamedex.ui.screens.LibraryScreen
 import com.sergo379.gamedex.ui.screens.SearchScreen
@@ -60,13 +63,13 @@ fun GameDexApp(graph: AppGraph) {
     }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    val showBottomBar = route?.startsWith("detail") != true && route != "settings"
+    val showBottomBar = destinations.any { it.route == route }
     Scaffold(
         bottomBar = {
             if (showBottomBar) NavigationBar {
                 destinations.forEach { destination ->
                     NavigationBarItem(
-                        selected = route == destination.route,
+                        selected = route?.startsWith(destination.route) == true,
                         onClick = {
                             navController.navigate(destination.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -88,7 +91,13 @@ fun GameDexApp(graph: AppGraph) {
             composable("search") {
                 SearchScreen(viewModel(factory = factory), { navController.navigate("detail/$it") })
             }
-            composable("analytics") { PlaceholderScreen("Аналитика", "Релизы за 7 и 30 дней") }
+            composable("analytics") { AnalyticsHub({ navController.navigate("analytics/weekly") }, { navController.navigate("analytics/monthly") }) }
+            composable("analytics/weekly") {
+                WeeklyAnalyticsScreen(viewModel(factory = AnalyticsViewModelFactory(7, graph.analytics)), navController::popBackStack)
+            }
+            composable("analytics/monthly") {
+                MonthlyAnalyticsScreen(viewModel(factory = AnalyticsViewModelFactory(30, graph.analytics)), navController::popBackStack)
+            }
             composable("library") { LibraryScreen(viewModel(factory = factory), { navController.navigate("detail/$it") }) }
             composable("settings") { SettingsScreen(settingsViewModel, firstRun = false, onContinue = navController::popBackStack) }
             composable("detail/{id}", arguments = listOf(navArgument("id") { type = NavType.IntType })) { backStack ->

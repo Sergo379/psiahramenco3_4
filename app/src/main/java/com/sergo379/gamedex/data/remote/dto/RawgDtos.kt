@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GamePageDto(
-    val count: Int = 0,
+    val count: Int? = null,
     val next: String? = null,
     val results: List<GameDto> = emptyList(),
 )

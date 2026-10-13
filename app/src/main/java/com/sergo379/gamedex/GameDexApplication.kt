@@ -2,6 +2,7 @@ package com.sergo379.gamedex
 
 import android.app.Application
 import com.sergo379.gamedex.data.GameRepository
+import com.sergo379.gamedex.data.AnalyticsRepository
 import com.sergo379.gamedex.data.LibraryRepository
 import com.sergo379.gamedex.data.local.AppDatabase
 import com.sergo379.gamedex.data.local.RoomGameCache
@@ -23,4 +24,9 @@ class AppGraph(application: Application) {
         onUpdated = settings::markUpdated,
     )
     val library = LibraryRepository(database.gameDao())
+    val analytics = AnalyticsRepository(
+        api = api,
+        dao = database.analyticsDao(),
+        apiKey = { settings.apiKey().ifBlank { BuildConfig.RAWG_API_KEY } },
+    )
 }
