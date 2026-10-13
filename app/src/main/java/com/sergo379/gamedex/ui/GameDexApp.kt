@@ -16,16 +16,27 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.sergo379.gamedex.BuildConfig
+import com.sergo379.gamedex.data.GameRepository
+import com.sergo379.gamedex.data.MemoryGameCache
+import com.sergo379.gamedex.data.remote.RawgServiceFactory
+import com.sergo379.gamedex.ui.screens.DetailScreen
+import com.sergo379.gamedex.ui.screens.HomeScreen
+import com.sergo379.gamedex.ui.screens.SearchScreen
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 private val destinations = listOf(
@@ -38,11 +49,16 @@ private val destinations = listOf(
 @Composable
 fun GameDexApp() {
     val navController = rememberNavController()
+    val repository = remember {
+        GameRepository(RawgServiceFactory.create(), { BuildConfig.RAWG_API_KEY }, MemoryGameCache())
+    }
+    val factory = remember(repository) { CatalogViewModelFactory(repository) }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
+    val showBottomBar = route?.startsWith("detail") != true
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            if (showBottomBar) NavigationBar {
                 destinations.forEach { destination ->
                     NavigationBarItem(
                         selected = route == destination.route,
@@ -61,10 +77,21 @@ fun GameDexApp() {
         },
     ) { padding ->
         NavHost(navController, startDestination = "home", modifier = Modifier.padding(padding)) {
-            composable("home") { PlaceholderScreen("GameDex", "Discover. Track. Play.") }
-            composable("search") { PlaceholderScreen("Поиск", "Найдите следующую любимую игру") }
+            composable("home") {
+                HomeScreen(viewModel(factory = factory), { navController.navigate("detail/$it") }, { navController.navigate("search") })
+            }
+            composable("search") {
+                SearchScreen(viewModel(factory = factory), { navController.navigate("detail/$it") })
+            }
             composable("analytics") { PlaceholderScreen("Аналитика", "Релизы за 7 и 30 дней") }
             composable("library") { PlaceholderScreen("Библиотека", "Ваш игровой путь") }
+            composable("detail/{id}", arguments = listOf(navArgument("id") { type = NavType.IntType })) { backStack ->
+                val id = requireNotNull(backStack.arguments).getInt("id")
+                DetailScreen(
+                    viewModel(key = "detail-$id", factory = CatalogViewModelFactory(repository, id)),
+                    navController::popBackStack,
+                )
+            }
         }
     }
 }
