@@ -11,7 +11,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        setContent { GameDexTheme { GameDexApp() } }
+        val graph = (application as GameDexApplication).graph
+        setContent { GameDexTheme { GameDexApp(graph) } }
     }
 }
 

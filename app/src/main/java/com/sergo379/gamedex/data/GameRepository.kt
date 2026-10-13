@@ -29,6 +29,7 @@ class GameRepository(
     private val api: RawgApi,
     private val apiKey: suspend () -> String,
     private val cache: GameCache,
+    private val onUpdated: suspend () -> Unit = {},
 ) {
     suspend fun popular(): PageResult = loadPage(search = null, filters = GameFilters(ordering = "-added"), page = 1)
 
@@ -55,6 +56,7 @@ class GameRepository(
             )
             val games = response.results.map { it.toDomain() }
             cache.save(games)
+            onUpdated()
             PageResult(games, response.next != null, false)
         } catch (error: Throwable) {
             val cached = cache.find(search.orEmpty())
@@ -69,6 +71,7 @@ class GameRepository(
         return try {
             val game = api.game(id, key).toDomain()
             cache.save(listOf(game))
+            onUpdated()
             game to false
         } catch (error: Throwable) {
             cache.get(id)?.let { it to true } ?: throw error
