@@ -14,8 +14,8 @@ android {
         applicationId = "com.sergo379.gamedex"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("String", "RAWG_API_KEY", "\"${providers.gradleProperty("RAWG_API_KEY").orNull ?: ""}\"")
