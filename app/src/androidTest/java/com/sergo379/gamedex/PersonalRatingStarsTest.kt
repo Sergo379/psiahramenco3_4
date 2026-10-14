@@ -21,7 +21,7 @@ class PersonalRatingStarsTest {
     @Test fun tappingLeftHalfOfFourthStarSelectsThreeAndAHalf() {
         var selected by mutableStateOf<Int?>(null)
         compose.setContent {
-            GameDexTheme { PersonalRatingStars(selected) { selected = it } }
+            GameDexTheme { PersonalRatingStars(selected, onValueChange = { selected = it }) }
         }
 
         compose.onNodeWithTag("rating-7").performClick()
@@ -34,7 +34,7 @@ class PersonalRatingStarsTest {
     @Test fun screenReaderCanSelectFiveStars() {
         var selected by mutableStateOf<Int?>(1)
         compose.setContent {
-            GameDexTheme { PersonalRatingStars(selected) { selected = it } }
+            GameDexTheme { PersonalRatingStars(selected, onValueChange = { selected = it }) }
         }
 
         compose.onNodeWithTag("rating-10").performClick()
