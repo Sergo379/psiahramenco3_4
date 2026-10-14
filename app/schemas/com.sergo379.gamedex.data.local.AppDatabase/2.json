@@ -1,0 +1,54 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "gamedex-v2-schema",
+    "entities": [
+      {
+        "tableName": "games",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `released` TEXT, `backgroundImage` TEXT, `rating` REAL NOT NULL, `metacritic` INTEGER, `genres` TEXT NOT NULL, `platforms` TEXT NOT NULL, `developers` TEXT NOT NULL, `publishers` TEXT NOT NULL, `website` TEXT, `screenshots` TEXT NOT NULL, `favorite` INTEGER NOT NULL, `playStatus` TEXT, `userRatingHalfStars` INTEGER, `addedAt` INTEGER, `cachedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          { "fieldPath": "id", "columnName": "id", "affinity": "INTEGER", "notNull": true },
+          { "fieldPath": "name", "columnName": "name", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "description", "columnName": "description", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "released", "columnName": "released", "affinity": "TEXT", "notNull": false },
+          { "fieldPath": "backgroundImage", "columnName": "backgroundImage", "affinity": "TEXT", "notNull": false },
+          { "fieldPath": "rating", "columnName": "rating", "affinity": "REAL", "notNull": true },
+          { "fieldPath": "metacritic", "columnName": "metacritic", "affinity": "INTEGER", "notNull": false },
+          { "fieldPath": "genres", "columnName": "genres", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "platforms", "columnName": "platforms", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "developers", "columnName": "developers", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "publishers", "columnName": "publishers", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "website", "columnName": "website", "affinity": "TEXT", "notNull": false },
+          { "fieldPath": "screenshots", "columnName": "screenshots", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "favorite", "columnName": "favorite", "affinity": "INTEGER", "notNull": true },
+          { "fieldPath": "playStatus", "columnName": "playStatus", "affinity": "TEXT", "notNull": false },
+          { "fieldPath": "userRatingHalfStars", "columnName": "userRatingHalfStars", "affinity": "INTEGER", "notNull": false },
+          { "fieldPath": "addedAt", "columnName": "addedAt", "affinity": "INTEGER", "notNull": false },
+          { "fieldPath": "cachedAt", "columnName": "cachedAt", "affinity": "INTEGER", "notNull": true }
+        ],
+        "primaryKey": { "autoGenerate": false, "columnNames": ["id"] },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "analytics",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` TEXT NOT NULL, `count` INTEGER NOT NULL, `fetchedAt` INTEGER NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`date`))",
+        "fields": [
+          { "fieldPath": "date", "columnName": "date", "affinity": "TEXT", "notNull": true },
+          { "fieldPath": "count", "columnName": "count", "affinity": "INTEGER", "notNull": true },
+          { "fieldPath": "fetchedAt", "columnName": "fetchedAt", "affinity": "INTEGER", "notNull": true },
+          { "fieldPath": "source", "columnName": "source", "affinity": "TEXT", "notNull": true }
+        ],
+        "primaryKey": { "autoGenerate": false, "columnNames": ["date"] },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'gamedex-v2-schema')"
+    ]
+  }
+}

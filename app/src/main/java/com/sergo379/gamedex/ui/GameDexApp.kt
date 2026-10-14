@@ -54,7 +54,7 @@ private val destinations = listOf(
 fun GameDexApp(graph: AppGraph) {
     val navController = rememberNavController()
     val repository = graph.games
-    val factory = remember(repository) { CatalogViewModelFactory(repository, graph.library) }
+    val factory = remember(repository) { CatalogViewModelFactory(repository, graph.library, graph.settings) }
     val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(graph.settings, graph.api, BuildConfig.RAWG_API_KEY))
     val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
     if (!settingsState.valid) {
@@ -103,7 +103,7 @@ fun GameDexApp(graph: AppGraph) {
             composable("detail/{id}", arguments = listOf(navArgument("id") { type = NavType.IntType })) { backStack ->
                 val id = requireNotNull(backStack.arguments).getInt("id")
                 DetailScreen(
-                    viewModel(key = "detail-$id", factory = CatalogViewModelFactory(repository, graph.library, id)),
+                    viewModel(key = "detail-$id", factory = CatalogViewModelFactory(repository, graph.library, graph.settings, id)),
                     navController::popBackStack,
                     onGameClick = { navController.navigate("detail/$it") },
                 )

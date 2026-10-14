@@ -14,8 +14,8 @@ android {
         applicationId = "com.sergo379.gamedex"
         minSdk = 31
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("String", "RAWG_API_KEY", "\"${providers.gradleProperty("RAWG_API_KEY").orNull ?: ""}\"")
@@ -36,6 +36,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
     packaging.resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
 }
 
@@ -69,6 +73,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.room:room-testing:2.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
 

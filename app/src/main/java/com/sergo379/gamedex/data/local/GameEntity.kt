@@ -22,6 +22,8 @@ data class GameEntity(
     val screenshots: String,
     val favorite: Boolean = false,
     val playStatus: String? = null,
+    val userRatingHalfStars: Int? = null,
+    val addedAt: Long? = null,
     val cachedAt: Long = System.currentTimeMillis(),
 )
 
@@ -33,6 +35,8 @@ fun Game.toEntity(previous: GameEntity? = null) = GameEntity(
     publishers.joinToString(SEP), website, screenshots.joinToString(SEP),
     favorite = previous?.favorite ?: false,
     playStatus = previous?.playStatus,
+    userRatingHalfStars = previous?.userRatingHalfStars,
+    addedAt = previous?.addedAt,
 )
 
 fun GameEntity.toDomain() = Game(
@@ -42,6 +46,19 @@ fun GameEntity.toDomain() = Game(
     website, screenshots.split(SEP).filter(String::isNotBlank),
 )
 
-data class LibraryGame(val game: Game, val favorite: Boolean, val status: PlayStatus?)
-fun GameEntity.toLibraryGame() = LibraryGame(toDomain(), favorite, playStatus?.let { runCatching { PlayStatus.valueOf(it) }.getOrNull() })
+data class LibraryGame(
+    val game: Game,
+    val favorite: Boolean,
+    val status: PlayStatus?,
+    val userRatingHalfStars: Int?,
+    val addedAt: Long?,
+)
+
+fun GameEntity.toLibraryGame() = LibraryGame(
+    game = toDomain(),
+    favorite = favorite,
+    status = playStatus?.let { runCatching { PlayStatus.valueOf(it) }.getOrNull() },
+    userRatingHalfStars = userRatingHalfStars,
+    addedAt = addedAt,
+)
 

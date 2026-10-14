@@ -20,7 +20,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
       - name: Test and assemble signed debug APK
-        run: ./gradlew testDebugUnitTest assembleDebug --stacktrace
+        run: ./gradlew clean testDebugUnitTest assembleDebug assembleDebugAndroidTest --stacktrace
       - name: Prepare release files
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk GameDex-Android12-${GITHUB_REF_NAME}.apk
@@ -28,7 +28,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           name: GameDex ${{ github.ref_name }}
-          body: Устанавливаемая тестовая сборка GameDex для Android 12+. APK подписан стандартным debug-ключом Android build tools.
+          body: |
+            Устанавливаемая тестовая сборка GameDex для Android 12+.
+            Важно: GitHub Actions создаёт новый debug-ключ. APK несовместим для update-in-place с опубликованной v1.0.1; перед установкой потребуется удалить старую GitHub debug-сборку, что удалит её локальные данные.
           files: |
             GameDex-Android12-${{ github.ref_name }}.apk
             GameDex-Android12-${{ github.ref_name }}.apk.sha256
