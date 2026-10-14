@@ -36,6 +36,13 @@ enum class PlayStatus(val label: String) {
     COMPLETED("Пройдено"),
 }
 
+enum class LibrarySortMode(val label: String) {
+    ADDED_NEWEST("По дате добавления"),
+    RATING_DESC("Оценка: по убыванию"),
+    RATING_ASC("Оценка: по возрастанию"),
+    ALPHABETICAL("По алфавиту"),
+}
+
 sealed interface UiState<out T> {
     data object Loading : UiState<Nothing>
     data class Success<T>(val data: T, val fromCache: Boolean = false) : UiState<T>
