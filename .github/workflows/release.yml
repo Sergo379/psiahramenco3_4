@@ -30,7 +30,7 @@ jobs:
           name: GameDex ${{ github.ref_name }}
           body: |
             Устанавливаемая тестовая сборка GameDex для Android 12+.
-            Важно: GitHub Actions создаёт новый debug-ключ, поэтому APK может потребовать удаления ранее установленной GitHub debug-сборки. При удалении локальные данные приложения будут потеряны.
+            Важно: GitHub Actions создаёт новый debug-ключ. APK несовместим для update-in-place с опубликованной v1.0.1; перед установкой потребуется удалить старую GitHub debug-сборку, что удалит её локальные данные.
           files: |
             GameDex-Android12-${{ github.ref_name }}.apk
             GameDex-Android12-${{ github.ref_name }}.apk.sha256
