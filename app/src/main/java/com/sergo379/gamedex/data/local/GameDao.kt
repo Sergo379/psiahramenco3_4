@@ -10,6 +10,22 @@ import kotlinx.coroutines.flow.Flow
 interface GameDao {
     @Upsert suspend fun upsert(games: List<GameEntity>)
     @Query("SELECT * FROM games WHERE id = :id") suspend fun get(id: Int): GameEntity?
+
+    @Transaction
+    suspend fun upsertPreservingLocal(game: GameEntity) {
+        val previous = get(game.id)
+        upsert(
+            listOf(
+                game.copy(
+                    favorite = previous?.favorite ?: false,
+                    playStatus = previous?.playStatus,
+                    userRatingHalfStars = previous?.userRatingHalfStars,
+                    addedAt = previous?.addedAt,
+                ),
+            ),
+        )
+    }
+
     @Query("SELECT * FROM games WHERE name LIKE '%' || :query || '%' ORDER BY cachedAt DESC LIMIT :limit") suspend fun search(query: String, limit: Int): List<GameEntity>
     @Query("SELECT * FROM games WHERE favorite = 1 OR playStatus IS NOT NULL OR userRatingHalfStars IS NOT NULL ORDER BY COALESCE(addedAt, 0) DESC")
     fun observeLibrary(): Flow<List<GameEntity>>

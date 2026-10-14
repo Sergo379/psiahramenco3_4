@@ -3,6 +3,7 @@ package com.sergo379.gamedex
 import com.sergo379.gamedex.data.GameCache
 import com.sergo379.gamedex.data.GameRepository
 import com.sergo379.gamedex.data.LibraryRepository
+import com.sergo379.gamedex.data.local.RoomGameCache
 import com.sergo379.gamedex.data.local.GameDao
 import com.sergo379.gamedex.data.local.GameEntity
 import com.sergo379.gamedex.data.remote.RawgApi
@@ -55,6 +56,13 @@ class RepositoryCacheTest {
         assertTrue(refreshed.favorite); assertEquals("PLAYING",refreshed.playStatus)
         assertEquals(9,refreshed.userRatingHalfStars); assertEquals(321L,refreshed.addedAt)
         assertEquals(1.2,refreshed.rating,0.0)
+    }
+    @Test fun roomCacheRefreshPreservesLocalFieldsAtomically() = runTest {
+        val dao=FakeDao(listOf(entity.copy(favorite=true,playStatus="PLAYING",userRatingHalfStars=8,addedAt=123L)))
+        RoomGameCache(dao).save(listOf(Game(1,"Fresh RAWG",rating=4.9)))
+        val saved=dao.get(1)!!
+        assertEquals("Fresh RAWG",saved.name); assertTrue(saved.favorite); assertEquals("PLAYING",saved.playStatus)
+        assertEquals(8,saved.userRatingHalfStars); assertEquals(123L,saved.addedAt); assertEquals(4.9,saved.rating,0.0)
     }
     @Test fun ratingReactivelyAddsGameToLibrary() = runTest {
         val dao=FakeDao(listOf(entity)); val repo=LibraryRepository(dao) { 42L }
