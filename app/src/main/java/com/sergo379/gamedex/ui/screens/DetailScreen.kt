@@ -24,11 +24,14 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,6 +49,9 @@ import com.sergo379.gamedex.domain.PlayStatus
 import com.sergo379.gamedex.ui.DetailViewModel
 import com.sergo379.gamedex.ui.components.SourceCaption
 import com.sergo379.gamedex.ui.components.GameCard
+import com.sergo379.gamedex.ui.components.PersonalRatingStars
+import com.sergo379.gamedex.ui.components.RatingGold
+import com.sergo379.gamedex.ui.components.ratingText
 import com.sergo379.gamedex.domain.Game
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -70,7 +76,27 @@ fun DetailScreen(viewModel: DetailViewModel, onBack: () -> Unit, onGameClick: (I
             item {
                 Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(game.name, fontSize = 32.sp, fontWeight = FontWeight.Black)
-                    Text("★ %.1f  ·  %s%s".format(game.rating, game.year, game.metacritic?.let { "  ·  Metacritic $it" } ?: ""), color = MaterialTheme.colorScheme.secondary)
+                    Text("${game.year}${game.metacritic?.let { "  ·  Metacritic $it" } ?: ""}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Оценка RAWG: ★ %.1f / 5".format(game.rating), color = MaterialTheme.colorScheme.secondary)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(20.dp),
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text("Моя оценка", fontWeight = FontWeight.Bold)
+                            PersonalRatingStars(detail.userRatingHalfStars, viewModel::setUserRating)
+                            if (detail.userRatingHalfStars == null) {
+                                Text("Вы ещё не оценили эту игру", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            } else {
+                                Text("${ratingText(detail.userRatingHalfStars)} / 5", color = RatingGold, fontWeight = FontWeight.Bold)
+                                TextButton(onClick = viewModel::removeUserRating) { Text("Удалить оценку") }
+                            }
+                        }
+                    }
                     Button(onClick = viewModel::toggleFavorite, modifier = Modifier.fillMaxWidth()) {
                         Icon(if (detail.favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null)
                         Text(if (detail.favorite) " В избранном" else " Добавить в избранное")

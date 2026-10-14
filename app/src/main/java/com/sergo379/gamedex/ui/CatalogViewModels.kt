@@ -7,6 +7,7 @@ import com.sergo379.gamedex.data.ApiErrorMapper
 import com.sergo379.gamedex.data.GameRepository
 import com.sergo379.gamedex.data.GameSearchDataSource
 import com.sergo379.gamedex.data.LibraryRepository
+import com.sergo379.gamedex.data.LibraryOrganizer
 import com.sergo379.gamedex.data.local.LibraryGame
 import com.sergo379.gamedex.data.local.SettingsStore
 import com.sergo379.gamedex.data.remote.RawgApi
@@ -14,6 +15,7 @@ import com.sergo379.gamedex.domain.Game
 import com.sergo379.gamedex.domain.GameFilters
 import com.sergo379.gamedex.domain.InputValidator
 import com.sergo379.gamedex.domain.PlayStatus
+import com.sergo379.gamedex.domain.LibrarySortMode
 import com.sergo379.gamedex.domain.RelatedGames
 import com.sergo379.gamedex.domain.SearchRelevance
 import com.sergo379.gamedex.domain.UiState
@@ -138,6 +140,7 @@ data class DetailData(
     val fromCache: Boolean,
     val favorite: Boolean,
     val status: PlayStatus?,
+    val userRatingHalfStars: Int?,
     val series: List<Game> = emptyList(),
     val additions: List<Game> = emptyList(),
     val relatedLoading: Boolean = false,
@@ -156,7 +159,10 @@ class DetailViewModel(
         try {
             val (game, cached) = repository.details(id)
             val local = library.item(id)
-            _state.value = UiState.Success(DetailData(game, cached, local?.favorite == true, local?.status, relatedLoading = !cached), cached)
+            _state.value = UiState.Success(
+                DetailData(game, cached, local?.favorite == true, local?.status, local?.userRatingHalfStars, relatedLoading = !cached),
+                cached,
+            )
             if (!cached) {
                 val related = try {
                     repository.related(id)
@@ -184,26 +190,44 @@ class DetailViewModel(
         val current = (_state.value as? UiState.Success)?.data ?: return@launch
         _state.value = UiState.Success(current.copy(status = status), current.fromCache)
     }
+    fun setUserRating(ratingHalfStars: Int) = viewModelScope.launch {
+        library.setUserRating(id, ratingHalfStars)
+        val current = (_state.value as? UiState.Success)?.data ?: return@launch
+        _state.value = UiState.Success(current.copy(userRatingHalfStars = ratingHalfStars), current.fromCache)
+    }
+    fun removeUserRating() = viewModelScope.launch {
+        library.removeUserRating(id)
+        val current = (_state.value as? UiState.Success)?.data ?: return@launch
+        _state.value = UiState.Success(current.copy(userRatingHalfStars = null), current.fromCache)
+    }
 }
 
 data class LibraryScreenState(
     val games: List<LibraryGame> = emptyList(),
+    val hasLibraryItems: Boolean = false,
     val query: String = "",
     val status: PlayStatus? = null,
+    val sort: LibrarySortMode = LibrarySortMode.ADDED_NEWEST,
 )
 
-class LibraryViewModel(private val repository: LibraryRepository) : ViewModel() {
+class LibraryViewModel(
+    private val repository: LibraryRepository,
+    private val settings: SettingsStore,
+) : ViewModel() {
     private val query = MutableStateFlow("")
     private val status = MutableStateFlow<PlayStatus?>(null)
-    val state = combine(repository.observe(), query, status) { games, q, filter ->
+    val state = combine(repository.observe(), query, status, settings.librarySortFlow) { games, q, filter, sort ->
         LibraryScreenState(
-            games.filter { it.game.name.contains(q, true) && (filter == null || it.status == filter) },
+            LibraryOrganizer.apply(games, q, filter, sort),
+            games.isNotEmpty(),
             q,
             filter,
+            sort,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryScreenState())
     fun setQuery(value: String) { query.value = value.take(InputValidator.MAX_QUERY_LENGTH) }
     fun setStatus(value: PlayStatus?) { status.value = value }
+    fun setSort(value: LibrarySortMode) { viewModelScope.launch { settings.saveLibrarySort(value) } }
     fun removeFavorite(id: Int) = viewModelScope.launch { repository.toggleFavorite(id) }
 }
 
@@ -245,13 +269,14 @@ class SettingsViewModel(
 class CatalogViewModelFactory(
     private val repository: GameRepository,
     private val library: LibraryRepository,
+    private val settings: SettingsStore,
     private val detailId: Int? = null,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
         modelClass.isAssignableFrom(HomeViewModel::class.java) -> HomeViewModel(repository) as T
         modelClass.isAssignableFrom(SearchViewModel::class.java) -> SearchViewModel(repository) as T
         modelClass.isAssignableFrom(DetailViewModel::class.java) -> DetailViewModel(requireNotNull(detailId), repository, library) as T
-        modelClass.isAssignableFrom(LibraryViewModel::class.java) -> LibraryViewModel(library) as T
+        modelClass.isAssignableFrom(LibraryViewModel::class.java) -> LibraryViewModel(library, settings) as T
         else -> error("Unknown ViewModel: ${modelClass.name}")
     }
 }
